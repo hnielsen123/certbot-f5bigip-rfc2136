@@ -47,7 +47,7 @@ def run_certbot(domain, certbot_config):
     # If force-upload mode, check if exists, if so skip cert generation/renewal and proceed to upload, if not exit on error
     if args.force_upload:
         if os.path.exists(cert_path):
-            logger.info(f' + --force-upload select, uploading existing letsencrypt cert to F5 device')
+            logger.info(f' + --force-upload selected, uploading existing letsencrypt cert to F5 device')
             return cert_path, key_path
         else:
             logger.error(f' + ERROR: --force-upload, certificate does not exist at {cert_path}')
@@ -142,7 +142,7 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
                     'name': f'{domain}_0',
                     'cert': f'/Common/certbot-{domain}.crt',
                     'key': f'/Common/certbot-{domain}.key',
-                'serverName': (domain)
+                'serverName': f'{domain}'
                 }]
             }
 
@@ -154,7 +154,7 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
             serversslprofile = {
                 'name' : f'serverssl-certbot-{domain}',
                 'defaultsFrom': (BaseServerSSLProfile),
-                'serverName': (domain)
+                'serverName': f'{domain}'
                 
             }
 
