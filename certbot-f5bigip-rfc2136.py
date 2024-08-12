@@ -124,7 +124,7 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
                 modify_cert = bigip.load(f'/mgmt/tm/sys/file/ssl-cert/certbot-{domain}.crt')
                 modify_cert.properties['sourcePath'] = f'file:/var/config/rest/downloads/{cert_path.split("/")[-1]}'
                 bigip.save(modify_cert)
-                logger.info(f' + Certificate and key for {domain} was successfully uploaded to F5.')
+                logger.info(f' + Certificate and key for {domain} were successfully uploaded to F5.')
 
         else:
             keydata = {'name': f'certbot-{domain}.key', 'sourcePath': f'file:/var/config/rest/downloads/{key_path.split("/")[-1]}'}
