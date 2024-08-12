@@ -15,9 +15,9 @@ This Python script automates the process of generating SSL certificates using Ce
 
     - This script assumes you are running from a Linux machine with Python 3.7 or higher installed
 
-    - This script uses certbot and the certbot-dns-rfc2136 plugin for Let's Encrypt certificate generation and renewal via Dynamic DNS. It assumes 1) that you have this process setup and working already, 2) that the script has access to your rfc2136.ini file, and 3) that the machine you'll be running the script from can create dynamic DNS entries on your nameserver. For details on getting this setup, see https://certbot.eff.org/ and https://certbot-dns-rfc2136.readthedocs.io/en/stable/
+    - This script uses certbot and the certbot-dns-rfc2136 plugin for Let's Encrypt certificate generation and renewal via Dynamic DNS. It assumes 1) that you have this process setup and working already, 2) that the script has access to your `rfc2136.ini` file, and 3) that the machine you'll be running the script from can create dynamic DNS entries on your nameserver. For details on getting this setup, see https://certbot.eff.org/ and https://certbot-dns-rfc2136.readthedocs.io/en/stable/
 
-    - This script utilizes the BIGREST Python SDK (https://github.com/f5-rahm/BIGREST/tree/master) by leonardobdes and F5-Rahm to communicate with the F5 device using F5's iControl REST API
+    - This script utilizes the [BIGREST Python SDK](https://github.com/f5-rahm/BIGREST/tree/master) by [Leonardo Souza](https://github.com/leonardobdes) and [Jason Rahm](https://github.com/f5-rahm) to communicate with the F5 device using F5's iControl REST API
 
     Other Dependencies: 
     - paramiko for SSH and SCP operations
@@ -31,7 +31,7 @@ sudo pip install -r requirements.txt
 
 ## Configuration
 
-The script uses a configuration file (config.ini) to manage input arguments. Here's an example:
+The script uses a configuration file (`config.ini`) to manage input arguments. Here's an example:
 
 ```ini
 [f5]
@@ -64,7 +64,7 @@ sudo python3 certbot-f5bigip-rfc2136.py /path/to/config.ini
 ### Workflow
 
 - The script tests that certbot is installed and functional.
-- The script tests that it can succesfully connect and authenticate to the F5 Rest API
+- The script tests that it can successfully connect and authenticate to the F5 Rest API
 - The script iterates through the list of domains provided in `config.ini`
 - The script checks if a certificate for that domain already exists on the local machine
 - If a certificate for that domain does not already exist, it will attempt to generate a new certificate for that domain using certbot and the certbot-dns-rfc2136 plugin
