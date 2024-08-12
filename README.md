@@ -1,4 +1,4 @@
-# Certbot-F5 Device Certificate Automation
+# F5 BIG-IP Device Certificate Automation via Certbot-DNS-RFC2136 
 
 This Python script automates the process of generating SSL certificates using Certbot with the DNS-01 challenge (via the RFC2136 plugin for dynamic DNS updates) and deploying them to an F5 BIG-IP load balancer. The script handles both SSL certificates for services behind the load balancer (traffic certificates) and the device certificate for the F5 management interface itself.
 
