@@ -54,7 +54,7 @@ def run_certbot(domain, certbot_config):
 
     # Check if certificate already exists
     if os.path.exists(cert_path):
-        logger.info(f'+ Certificate for {domain} exists. Attempting renewal.')
+        logger.info(f' + Certificate for {domain} exists. Attempting renewal.')
 
         # Get modification time before renewal
         cert_mtime_before = os.path.getmtime(cert_path)
@@ -197,9 +197,9 @@ if __name__ == '__main__':
 
     # Parse args
     parser = argparse.ArgumentParser(description='Automates the process of generating SSL certificates using certbot-dns-rfc2136 and deploying them to an F5 BIG-IP load balancer. Handles both traffic and device certificates.')
-    parser.add_argument('-c', '--config', required=True, help='Path to config.ini file')
+    parser.add_argument('-c', '--config', type=str, required=True, help='Path to config.ini file')
     parser.add_argument('--force-upload', required=False, action='store_true', help='If this flag is provided, script will upload any existing letsencrypt certs for the provided domain(s) without checking renewal status. Used for transitioning services that already use certbot to the F5 device')
-    args = parser.parse_args
+    args = parser.parse_args()
 
     # Logging
     logger = logging.getLogger(__name__)
