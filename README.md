@@ -16,7 +16,7 @@ This Python script automates the process of generating SSL certificates using Ce
     - This script assumes you are running from a Linux machine with Python 3.7 or higher installed
 
     - This script uses certbot and the certbot-dns-rfc2136 plugin for Let's Encrypt certificate generation and renewal via Dynamic DNS. It assumes: 
-        - that you have this process setup and working already 
+        - that you have the above process setup and working already 
         - that the script has access to your `rfc2136.ini` file 
         - that certbot can create dynamic DNS entries on your nameserver from the machine you are running this script from 
         - *For details on getting this setup, see https://certbot.eff.org/ and https://certbot-dns-rfc2136.readthedocs.io/en/stable/*

@@ -84,6 +84,7 @@ def run_certbot(domain, certbot_config):
         # Request a new certificate using dns-rfc2136
         certbot_command = [
             'certbot', 'certonly', 
+            '--key-type', 'rsa',
             '--dns-rfc2136', 
             '--dns-rfc2136-credentials', certbot_config['credentials'],
             '--domain', domain,
@@ -99,7 +100,7 @@ def run_certbot(domain, certbot_config):
             logger.error(f" + ERROR: Certbot failed create new cert for {domain} with error: {e}")
             return None, None
 
-        logger.info(f" + Certificate renewed for {domain}. Certificate path: {cert_path} Key Path: {key_path}")
+        logger.info(f" + Certificate renewed for {domain}")
 
     return cert_path, key_path
 
@@ -130,7 +131,7 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
             certdata = {'name': f'certbot-{domain}.crt', 'sourcePath': f'file:/var/config/rest/downloads/{cert_path.split("/")[-1]}'}
             bigip.create('/mgmt/tm/sys/file/ssl-key', keydata)
             bigip.create('/mgmt/tm/sys/file/ssl-cert', certdata)
-            logger.info(f' + Certificate and key for {domain} was successfully uploaded to F5.')
+            logger.info(f' + Certificate and key for {domain} were successfully uploaded to F5.')
 
         if not bigip.exist(f'/mgmt/tm/ltm/profile/client-ssl/certbot-{domain}'):
             sslprofile = {
@@ -145,10 +146,10 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
 
             logger.info(sslprofile)
             bigip.create('/mgmt/tm/ltm/profile/client-ssl', sslprofile)
-            logger.info(f' + New client-ssl profile created certbot-{domain} using new certificate and key.')
+            logger.info(f' + New client-ssl profile "certbot-{domain}" created using new certificate and key.')
 
         else:
-            logger.info(f" + Existing profile certbot-{domain} updated with new certificate and key")
+            logger.info(f" + Existing profile 'certbot-{domain}' updated with new certificate and key")
     
     except Exception as e:
         logger.error(f" + ERROR: Failed to deploy certificate for {domain}: {e}")
