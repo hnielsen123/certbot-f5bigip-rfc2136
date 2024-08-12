@@ -57,7 +57,7 @@ domains_list = app.domain.com, thing.domain.com, device-cert:domain.com
     -  `base_ssl_profile` defines the SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `clientssl-letsencypt` profile (with `clientssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `certbot-{domain}`  
 - Certbot Section: Configures Certbot, including the path to the `rfc2136.ini` credentials file and the email address for certificate notifications
 - Domains Section: Lists the domains you want to generate certificates for, separated by commas
-    - To generate and install the device certificate, add `device-cert:{yourdomain.com}` to the list of domains 
+    - To generate and install the device certificate, add `device-cert:{domain}` (e.g. `device-cert:example.com`) to the list of domains 
 
 ## Usage
 
@@ -77,10 +77,10 @@ sudo python3 certbot-f5bigip-rfc2136.py /path/to/config.ini
 - If a certificate for that domain does not already exist, it will attempt to generate a new certificate for that domain using certbot and the certbot-dns-rfc2136 plugin
 - If a certificate for that domain does already exist, it will attempt a certbot renewal. If certbot runs successfully, it will then check the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
 - The script then connects to the F5 REST API, and checks if an SSL profile for that domain exists already
-- If so, it uploads the new certificate and replaces it as the certificate that profile uses
-- If not, it creates a new SSL profile for that domain (with the naming scheme `certbot-{domain}`), uploads the new certificate (named `certbot-{domain}.crt` and `certbot-{domain}.key`), and then set the newly created SSL profile to use that certificate
+- If so, it uploads the new certificate, automatically setting it as the certificate that profile uses
+- If not, it creates a new SSL profile for that domain (with the naming scheme `certbot-{domain}`), uploads the new certificate (named `certbot-{domain}.crt` and `certbot-{domain}.key`), and then sets the newly created SSL profile to use that certificate
 - It then repeats this process with the next domain on the list
-- If the domain `device-cert:{yourdomain.com}` is on the list of domains, the script checks to see if a wildcard cert for that domain exists on the local machine
+- If the domain `device-cert:{domain}` is on the list of domains, the script checks to see if a wildcard cert for that domain exists on the local machine
 - If the wildcard cert exists, it similarly attempts a certbot renewal. As before, if certbot runs successfully, it then checks the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
 - If the wildcard cert does not exist, the script requests a new wildcard certificate using certbot and certbot-dns-rfc2136
 - The script then uses SCP to copy the wildcard cert and key to the F5 device (the F5 iControl REST API does not allow device certificates to be uploaded using the API; SCP is F5's recommended method for this use case) 
