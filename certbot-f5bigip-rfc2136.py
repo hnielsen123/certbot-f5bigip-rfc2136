@@ -134,19 +134,31 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
             logger.info(f' + Certificate and key for {domain} were successfully uploaded to F5.')
 
         if not bigip.exist(f'/mgmt/tm/ltm/profile/client-ssl/certbot-{domain}'):
-            sslprofile = {
+            clientsslprofile = {
                 'name' : f'certbot-{domain}',
-                'defaultsFrom': (BaseSSLProfile),
+                'defaultsFrom': (BaseClientSSLProfile),
                 'certKeyChain': [{
                     'name': f'{domain}_0',
                     'cert': f'/Common/certbot-{domain}.crt',
-                    'key': f'/Common/certbot-{domain}.key'
+                    'key': f'/Common/certbot-{domain}.key',
+                'serverName': (domain)
                 }]
             }
 
-            logger.info(sslprofile)
-            bigip.create('/mgmt/tm/ltm/profile/client-ssl', sslprofile)
-            logger.info(f' + New client-ssl profile "certbot-{domain}" created using new certificate and key.')
+            logger.info(clientsslprofile)
+            bigip.create('/mgmt/tm/ltm/profile/client-ssl', clientsslprofile)
+
+        if not bigip.exist(f'/mgmt/tm/ltm/profile/server-ssl/certbot-{domain}'):
+            serversslprofile = {
+                'name' : f'certbot-{domain}',
+                'defaultsFrom': (BaseServerSSLProfile),
+                'serverName': (domain)
+                
+            }
+
+            logger.info(serversslprofile)
+            bigip.create('/mgmt/tm/ltm/profile/server-ssl', serversslprofile)
+            logger.info(f' + New server-ssl profile "certbot-{domain}" created.')
 
         else:
             logger.info(f" + Existing profile 'certbot-{domain}' updated with new certificate and key")
@@ -214,7 +226,8 @@ if __name__ == '__main__':
     f5_config = config['f5']
     certbot_config = config['certbot']
     domains = config['domains']['domains_list'].split(',')
-    BaseSSLProfile = config['f5']['base_ssl_profile']
+    BaseClientSSLProfile = config['f5']['base_ssl_profile_client']
+    BaseServerSSLProfile = config['f5']['base_ssl_profile_server']
 
     # Check if Certbot is available
     try:
