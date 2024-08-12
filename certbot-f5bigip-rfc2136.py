@@ -9,6 +9,7 @@ from bigrest.bigip import BIGIP
 import paramiko
 from scp import SCPClient
 from datetime import date
+import argparse
 
 def create_ssh_client(hostname, username, password):
     ssh = paramiko.SSHClient()
@@ -42,6 +43,14 @@ def run_certbot(domain, certbot_config):
     else:
         cert_path = f'/etc/letsencrypt/live/{domain}/fullchain.pem'
         key_path = f'/etc/letsencrypt/live/{domain}/privkey.pem'
+
+    # If force-upload mode, check if exists, if so skip cert generation/renewal and proceed to upload, if not exit on error
+    if args.force_upload:
+        if os.path.exists(cert_path):
+            return cert_path, key_path
+        else:
+            logger.error(f'+ ERROR: --force-upload, certificate does not exist at {cert_path}')
+            sys.exit(1)
 
     # Check if certificate already exists
     if os.path.exists(cert_path):
@@ -186,13 +195,19 @@ def deploy_device_cert(domain, cert_path, key_path, f5_config):
 
 if __name__ == '__main__':
 
+    # Parse args
+    parser = argparse.ArgumentParser(description='Automates the process of generating SSL certificates using certbot-dns-rfc2136 and deploying them to an F5 BIG-IP load balancer. Handles both traffic and device certificates.')
+    parser.add_argument('-c', '--config', required=True, help='Path to config.ini file')
+    parser.add_argument('--force-upload', required=False, action='store_true', help='If this flag is provided, script will upload any existing letsencrypt certs for the provided domain(s) without checking renewal status. Used for transitioning services that already use certbot to the F5 device')
+    args = parser.parse_args
+
     # Logging
     logger = logging.getLogger(__name__)
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
 
     # Load configuration
-    config_file = sys.argv[1] if len(sys.argv) > 1 else 'config.ini'
+    config_file = args.config
     config = load_config(config_file)
 
     f5_config = config['f5']

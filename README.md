@@ -64,9 +64,15 @@ domains_list = app.domain.com, thing.domain.com, device-cert:domain.com
 Run the script with:
 
 ```bash
-sudo python3 certbot-f5bigip-rfc2136.py /path/to/config.ini
+sudo python3 certbot-f5bigip-rfc2136.py -c /path/to/config.ini
 ```
-
+Arguments:
+```
+-c, --config      Path to config.ini file (Required)
+--force-upload    If this flag is provided, the script will upload any existing letsencrypt certs for the provided domain(s) without checking renewal status. Used 
+                  for transitioning services that already use certbot to the F5 device. (Optional)
+```
+**Note:** `--force-upload` is designed to be used with one domain, and run manually. The use case is a service that is already using certbot for certificate generation/renewal, that you a transitioning to the F5 device. In that case, you want to take the existing cert and upload it, after which you would transition the renewal process from the existing cronjob/systemd timer to this script. Do not use this option within a cronjob, as it will not do certificate renewal and will force upload the same cert to the F5 device every time it is ran. 
 
 ### Workflow
 
@@ -77,12 +83,12 @@ sudo python3 certbot-f5bigip-rfc2136.py /path/to/config.ini
 - If a certificate for that domain does not already exist, it will attempt to generate a new certificate for that domain using certbot and the certbot-dns-rfc2136 plugin
 - If a certificate for that domain does already exist, it will attempt a certbot renewal. If certbot runs successfully, it will then check the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
 - The script then connects to the F5 REST API, and checks if an SSL profile for that domain exists already
-- If so, it uploads the new certificate, automatically setting it as the certificate that profile uses
-- If not, it creates a new SSL profile for that domain (with the naming scheme `certbot-{domain}`), uploads the new certificate (named `certbot-{domain}.crt` and `certbot-{domain}.key`), and then sets the newly created SSL profile to use that certificate
+   - If so, it uploads the new certificate, automatically setting it as the certificate that profile uses
+   - If not, it creates a new SSL profile for that domain (with the naming scheme `certbot-{domain}`), uploads the new certificate (named `certbot-{domain}.crt` and `certbot-{domain}.key`), and then sets the newly created SSL profile to use that certificate
 - It then repeats this process with the next domain on the list
 - If the domain `device-cert:{domain}` is on the list of domains, the script checks to see if a wildcard cert for that domain exists on the local machine
-- If the wildcard cert exists, it similarly attempts a certbot renewal. As before, if certbot runs successfully, it then checks the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
-- If the wildcard cert does not exist, the script requests a new wildcard certificate using certbot and certbot-dns-rfc2136
+   - If the wildcard cert exists, it similarly attempts a certbot renewal. As before, if certbot runs successfully, it then checks the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
+   - If the wildcard cert does not exist, the script requests a new wildcard certificate using certbot and certbot-dns-rfc2136
 - The script then uses SCP to copy the wildcard cert and key to the F5 device (the F5 iControl REST API does not allow device certificates to be uploaded using the API; SCP is F5's recommended method for this use case) 
 - The naming scheme for the device certificates is `domain-YYYY-MM-DD.crt` and `domain-YYYY-MM-DD.key`, e.g. for a wildcart cert for `*.example.com`, uploaded on 8/11/24, the certificate would be named `example-2024-08-11.crt`
 - The script then connects to the API, and changes the configuration of httpd to use the newly uploaded certificate
