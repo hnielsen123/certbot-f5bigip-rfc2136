@@ -71,16 +71,16 @@ sudo python3 certbot-f5bigip-rfc2136.py /path/to/config.ini
 - If a certificate for that domain does already exist, it will attempt a certbot renewal. If certbot runs successfully, it will then check the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
 - The script then connects to the F5 REST API, and check if an SSL profile for that domain exists already
 - If so, it uploads the new certificate and replace it as the certificate that profile uses
-- If not, it creates a new SSL profile for that domain (with the naming scheme `certbot-{domain}`), upload the new certificate (named `certbot-{domain}.crt` and `certbot-{domain}.key`, and then set the newly created SSL profile to use that certificate
-- It will repeats this process with the next domain on the list
+- If not, it creates a new SSL profile for that domain (with the naming scheme `certbot-{domain}`), uploads the new certificate (named `certbot-{domain}.crt` and `certbot-{domain}.key`), and then set the newly created SSL profile to use that certificate
+- It then repeats this process with the next domain on the list
 - If the domain `device-cert:{yourdomain.com}` is on the list of domains, the script checks to see if a wildcard cert for that domain exists on the local machine
 - If the wildcard cert exists, it similarly attempts a certbot renewal. As before, if certbot runs successfully, it then checks the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
-- If the wildcard cert does not exists, the script requests a new wildcard certificate using certbot and certbot-dns-rfc2136
+- If the wildcard cert does not exist, the script requests a new wildcard certificate using certbot and certbot-dns-rfc2136
 - The script then uses SCP to copy the wildcard cert and key to the F5 device (the F5 iControl REST API does not allow device certificates to be uploaded using the API; SCP is F5's recommended method for this use case) 
-- The naming scheme for the device certificates is `domain-YYYY-MM-DD.crt` and `domain-YYYY-MM-DD.key`, e.g. for a wildcart cert for `\*.example.com`, uploaded on 8/11/24, the certificate would be named `example-2024-08-11.crt`
+- The naming scheme for the device certificates is `domain-YYYY-MM-DD.crt` and `domain-YYYY-MM-DD.key`, e.g. for a wildcart cert for `*.example.com`, uploaded on 8/11/24, the certificate would be named `example-2024-08-11.crt`
 - The script then connects to the API, and changes the configuration of httpd to use the newly uploaded certificate
-- The script restarts the httpd service for the new certificate to take effect
-- The script continues with the next domain on the list, if any
+- The script restarts the httpd service, so the new certificate will take effect
+- The script continues with the next domain on the list (if any)
 
 **Note:** At this time, the script will create traffic certificates, upload them, and create a new SSL profile for them on the F5 device, but it will not apply the SSL profile to a Virtual Server. After you've ran this script for a new domain, you must manually apply the new profile to the applicable Virtual Server. This should only have to be done the first time; on subsequent renewals the certificate will be swapped out in the same profile, so it should take effect without any manual interaction required.  
 
