@@ -138,11 +138,11 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
             clientsslprofile = {
                 'name' : f'clientssl-certbot-{domain}',
                 'defaultsFrom': (BaseClientSSLProfile),
+                'serverName': (domain),
                 'certKeyChain': [{
                     'name': f'{domain}_0',
                     'cert': f'/Common/certbot-{domain}.crt',
-                    'key': f'/Common/certbot-{domain}.key',
-                'serverName': f'{domain}'
+                    'key': f'/Common/certbot-{domain}.key'
                 }]
             }
 
@@ -154,7 +154,7 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
             serversslprofile = {
                 'name' : f'serverssl-certbot-{domain}',
                 'defaultsFrom': (BaseServerSSLProfile),
-                'serverName': f'{domain}'
+                'serverName': (domain)
                 
             }
 
