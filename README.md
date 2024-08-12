@@ -1,6 +1,6 @@
 # Certbot-F5 Device Certificate Automation
 
-This Python script automates the process of generating SSL certificates using Certbot with the DNS-01 challenge (RFC 2136 plugin) and deploying them to an F5 BIG-IP load balancer. The script handles both SSL certificates for services behind the load balancer (traffic certificates) and the device certificate for the F5 management interface itself.
+This Python script automates the process of generating SSL certificates using Certbot with the DNS-01 challenge (via the RFC2136 plugin for dynamic DNS updates) and deploying them to an F5 BIG-IP load balancer. The script handles both SSL certificates for services behind the load balancer (traffic certificates) and the device certificate for the F5 management interface itself.
 
 ## Features
 
@@ -13,7 +13,7 @@ This Python script automates the process of generating SSL certificates using Ce
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/yourusername/certbot-f5bigip-rfc2136.git
+   git clone https://github.com/hnielsen123/certbot-f5bigip-rfc2136.git
    cd certbot-f5bigip-rfc2136
    ```
 
@@ -32,7 +32,7 @@ Other Dependencies: Make sure you have Python 3.7 or higher installed. Then, ins
 Install dependencies (excluding certbot and certbot-dns-rfc2136):
 
 ```bash
-pip install -r requirements.txt
+sudo pip install -r requirements.txt
 ```
 
 ## Configuration

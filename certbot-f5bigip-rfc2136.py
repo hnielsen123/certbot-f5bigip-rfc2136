@@ -103,43 +103,43 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
         bigip = instantiate_bigip(f5_config)
         bigip.upload('/mgmt/shared/file-transfer/uploads', key_path)
         bigip.upload('/mgmt/shared/file-transfer/uploads', cert_path)
-        key_status = bigip.exist(f'/mgmt/tm/sys/file/ssl-key/auto_le_{domain}.key')
-        cert_status = bigip.exist(f'/mgmt/tm/sys/file/ssl-cert/auto_le_{domain}.crt')
+        key_status = bigip.exist(f'/mgmt/tm/sys/file/ssl-key/certbot-{domain}.key')
+        cert_status = bigip.exist(f'/mgmt/tm/sys/file/ssl-cert/certbot-{domain}.crt')
 
         if key_status and cert_status:
             with bigip as transaction:
-                modify_key = bigip.load(f'/mgmt/tm/sys/file/ssl-key/auto_le_{domain}.key')
+                modify_key = bigip.load(f'/mgmt/tm/sys/file/ssl-key/certbot-{domain}.key')
                 modify_key.properties['sourcePath'] = f'file:/var/config/rest/downloads/{key_path.split("/")[-1]}'
                 bigip.save(modify_key)
-                modify_cert = bigip.load(f'/mgmt/tm/sys/file/ssl-cert/auto_le_{domain}.crt')
+                modify_cert = bigip.load(f'/mgmt/tm/sys/file/ssl-cert/certbot-{domain}.crt')
                 modify_cert.properties['sourcePath'] = f'file:/var/config/rest/downloads/{cert_path.split("/")[-1]}'
                 bigip.save(modify_cert)
                 logger.info(f' + Certificate and key for {domain} was successfully uploaded to F5.')
 
         else:
-            keydata = {'name': f'auto_le_{domain}.key', 'sourcePath': f'file:/var/config/rest/downloads/{key_path.split("/")[-1]}'}
-            certdata = {'name': f'auto_le_{domain}.crt', 'sourcePath': f'file:/var/config/rest/downloads/{cert_path.split("/")[-1]}'}
+            keydata = {'name': f'certbot-{domain}.key', 'sourcePath': f'file:/var/config/rest/downloads/{key_path.split("/")[-1]}'}
+            certdata = {'name': f'certbot-{domain}.crt', 'sourcePath': f'file:/var/config/rest/downloads/{cert_path.split("/")[-1]}'}
             bigip.create('/mgmt/tm/sys/file/ssl-key', keydata)
             bigip.create('/mgmt/tm/sys/file/ssl-cert', certdata)
             logger.info(f' + Certificate and key for {domain} was successfully uploaded to F5.')
 
-        if not bigip.exist(f'/mgmt/tm/ltm/profile/client-ssl/auto_le_{domain}'):
+        if not bigip.exist(f'/mgmt/tm/ltm/profile/client-ssl/certbot-{domain}'):
             sslprofile = {
-                'name' : f'auto_le_{domain}',
+                'name' : f'certbot-{domain}',
                 'defaultsFrom': (BaseSSLProfile),
                 'certKeyChain': [{
                     'name': f'{domain}_0',
-                    'cert': f'/Common/auto_le_{domain}.crt',
-                    'key': f'/Common/auto_le_{domain}.key'
+                    'cert': f'/Common/certbot-{domain}.crt',
+                    'key': f'/Common/certbot-{domain}.key'
                 }]
             }
 
             logger.info(sslprofile)
             bigip.create('/mgmt/tm/ltm/profile/client-ssl', sslprofile)
-            logger.info(f' + New client-ssl profile created auto_le_{domain} using new certificate and key.')
+            logger.info(f' + New client-ssl profile created certbot-{domain} using new certificate and key.')
 
         else:
-            logger.info(f" + Existing profile auto_le_{domain} updated with new certificate and key")
+            logger.info(f" + Existing profile certbot-{domain} updated with new certificate and key")
     
     except Exception as e:
         logger.error(f" + ERROR: Failed to deploy certificate for {domain}: {e}")
