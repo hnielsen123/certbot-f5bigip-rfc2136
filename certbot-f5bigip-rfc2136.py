@@ -47,9 +47,10 @@ def run_certbot(domain, certbot_config):
     # If force-upload mode, check if exists, if so skip cert generation/renewal and proceed to upload, if not exit on error
     if args.force_upload:
         if os.path.exists(cert_path):
+            logger.info(f' + --force-upload select, uploading existing letsencrypt cert to F5 device')
             return cert_path, key_path
         else:
-            logger.error(f'+ ERROR: --force-upload, certificate does not exist at {cert_path}')
+            logger.error(f' + ERROR: --force-upload, certificate does not exist at {cert_path}')
             sys.exit(1)
 
     # Check if certificate already exists
@@ -135,7 +136,7 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
 
         if not bigip.exist(f'/mgmt/tm/ltm/profile/client-ssl/certbot-{domain}'):
             clientsslprofile = {
-                'name' : f'certbot-{domain}',
+                'name' : f'clientssl-certbot-{domain}',
                 'defaultsFrom': (BaseClientSSLProfile),
                 'certKeyChain': [{
                     'name': f'{domain}_0',
@@ -147,10 +148,11 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
 
             logger.info(clientsslprofile)
             bigip.create('/mgmt/tm/ltm/profile/client-ssl', clientsslprofile)
+            logger.info(f' + New client-ssl profile "clientssl-certbot-{domain}" created with serverName "{domain}".')
 
         if not bigip.exist(f'/mgmt/tm/ltm/profile/server-ssl/certbot-{domain}'):
             serversslprofile = {
-                'name' : f'certbot-{domain}',
+                'name' : f'serverssl-certbot-{domain}',
                 'defaultsFrom': (BaseServerSSLProfile),
                 'serverName': (domain)
                 
@@ -158,10 +160,10 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
 
             logger.info(serversslprofile)
             bigip.create('/mgmt/tm/ltm/profile/server-ssl', serversslprofile)
-            logger.info(f' + New server-ssl profile "certbot-{domain}" created.')
+            logger.info(f' + New server-ssl profile "serverssl-certbot-{domain}" created with serverName "{domain}".')
 
         else:
-            logger.info(f" + Existing profile 'certbot-{domain}' updated with new certificate and key")
+            logger.info(f" + Existing profile 'clientssl-certbot-{domain}' updated with new certificate and key")
     
     except Exception as e:
         logger.error(f" + ERROR: Failed to deploy certificate for {domain}: {e}")

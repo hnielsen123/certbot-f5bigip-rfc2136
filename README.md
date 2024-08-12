@@ -42,8 +42,8 @@ The script uses a configuration file (`config.ini`) to manage input arguments. H
 host = your_f5_host
 user = your_f5_user
 pass = your_f5_password
-base_ssl_profile_client = "Common/clientssl-letsencrypt"
-base_ssl_profile_server = "Common/serverssl-letsencrypt"
+base_ssl_profile_client = "Common/clientssl-certbot"
+base_ssl_profile_server = "Common/serverssl-certbot"
 
 [certbot]
 credentials = /path/to/rfc2136.ini
@@ -55,8 +55,8 @@ domains_list = app.domain.com, thing.domain.com, device-cert:domain.com
 
 - F5 Section: Contains the credentials for the F5 BIG-IP device 
     - Must provide credentials that have administrator access to the device 
-    -  `base_ssl_profile_client` defines the client SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `clientssl-letsencypt` profile (with `clientssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `certbot-{domain}`  
-    -  `base_ssl_profile_server` defines the server SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `serverssl-letsencypt` profile (with `serverssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `certbot-{domain}`  
+    -  `base_ssl_profile_client` defines the client SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `clientssl-certbot` profile (with `clientssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `clientssl-certbot-{domain}`  
+    -  `base_ssl_profile_server` defines the server SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `serverssl-letsencypt` profile (with `serverssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `serverssl-certbot-{domain}`  
 - Certbot Section: Configures Certbot, including the path to the `rfc2136.ini` credentials file and the email address for certificate notifications
 - Domains Section: Lists the domains you want to generate certificates for, separated by commas
     - To generate and install the device certificate, add `device-cert:{domain}` (e.g. `device-cert:example.com`) to the list of domains 
