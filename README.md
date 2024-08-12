@@ -18,7 +18,7 @@ This Python script automates the process of generating SSL certificates using Ce
     - This script uses certbot and the certbot-dns-rfc2136 plugin for Let's Encrypt certificate generation and renewal via Dynamic DNS. It assumes: 
         - that you have this process setup and working already 
         - that the script has access to your `rfc2136.ini` file 
-        - that the machine you'll be running the script from can create dynamic DNS entries on your nameserver 
+        - that certbot can create dynamic DNS entries on your nameserver from the machine you are running this script from 
         - *For details on getting this setup, see https://certbot.eff.org/ and https://certbot-dns-rfc2136.readthedocs.io/en/stable/*
 
     - This script utilizes the [BIGREST Python SDK](https://github.com/f5-rahm/BIGREST/tree/master) by [Leonardo Souza](https://github.com/leonardobdes) and [Jason Rahm](https://github.com/f5-rahm) to communicate with the F5 device using F5's iControl REST API
@@ -54,7 +54,7 @@ domains_list = app.domain.com, thing.domain.com, device-cert:domain.com
 
 - F5 Section: Contains the credentials for the F5 BIG-IP device 
     - Must provide credentials that have administrator access to the device 
-    - BaseSSLProfile defines the SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `clientssl-letsencypt` profile (with `clientssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `certbot-{domain}`  
+    -  `base_ssl_profile` defines the SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `clientssl-letsencypt` profile (with `clientssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `certbot-{domain}`  
 - Certbot Section: Configures Certbot, including the path to the `rfc2136.ini` credentials file and the email address for certificate notifications
 - Domains Section: Lists the domains you want to generate certificates for, separated by commas
     - To generate and install the device certificate, add `device-cert:{yourdomain.com}` to the list of domains 
