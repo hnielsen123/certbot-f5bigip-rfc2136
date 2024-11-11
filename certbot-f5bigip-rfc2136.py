@@ -8,8 +8,29 @@ import subprocess
 from bigrest.bigip import BIGIP
 import paramiko
 from scp import SCPClient
-from datetime import date
+from datetime import date, datetime
 import argparse
+import ssl
+import socket
+
+def get_cert_issue_date(hostname, port=443):
+    try:
+        context = ssl.create_default_context()
+        with socket.create_connection((hostname, port)) as ssl_sock:
+            cert = ssl_sock.getpeercert()
+            expiration_date_str = cert['notBefore']
+            expiration_date = datetime.strptime(expiration_date_str, "%b %d %H:%M:%S %Y %Z")
+            expiration_timestamp = expiration_date.timestamp()
+            return expiration_timestamp
+    except socket.gaierror:
+        logger.error(f" + ERROR: {hostname} not available or DNS not resolvable, cannot verify current certificate expiration status.")
+        return None
+    except Exception as e:
+        logger.error(f" + ERROR: Error checking current certificate expiration status: {e}")
+        return None
+
+def is_within_one_day(timestamp1, timestamp2, tolerance=86400):
+    return abs(timestamp1 - timestamp2) <= tolerance
 
 def create_ssh_client(hostname, username, password):
     ssh = paramiko.SSHClient()
@@ -74,10 +95,29 @@ def run_certbot(domain, certbot_config):
         
         # Check to see if cert was modified, if it wasn't, but no certbot error was thrown, it means cert didn't need renewing
         if cert_mtime_before == cert_mtime_after:
-            logger.info(f' + Certificate for {domain} did not need renewal.')
-            return None, None
+            # Checks for condition of "cert doesn't need renewal, but does need to be uploaded"
+            try:
+                cert_issue_date = get_cert_issue_date(domain)
+                if cert_issue_date:
+                    if is_within_one_day(cert_mtime_after, cert_issue_date):
+                        logger.info(f' + Certificate for {domain} did not need renewal.')
+                        return None, None
+                    elif cert_mtime_after > cert_issue_date:
+                        logger.info(f' + Certificate for {domain} did not need renewal, but does need to be uploaded to load balancer.')
+                        logger.info(f' + Current traffic certificate on the load balancer is not yet expired.')
+                        return cert_path, key_path
+                    else:
+                        logger.error(f' + ERROR: Certificate for {domain} did not need renewal, but live traffic certificate is newer than the certificate on this machine')
+                        return None, None
+                else:
+                    return None, None
 
-        logger.info(f" + New certificate created for {domain}. Certificate path: {cert_path} Key Path: {key_path}")
+            except ssl.SSLCertVerificationError:
+                logger.info(f' + Certificate for {domain} did not need renewal, but does need to be uploaded to load balancer.')
+                logger.info(f' + Current traffic certificate on the load balancer is EXPIRED.')
+                return cert_path, key_path
+
+        logger.info(f" + Certificate renewed for {domain}")
 
     else:
         logger.info(f" + No existing certificate for {domain}. Requesting new certificate.")
@@ -101,7 +141,7 @@ def run_certbot(domain, certbot_config):
             logger.error(f" + ERROR: Certbot failed create new cert for {domain} with error: {e}")
             return None, None
 
-        logger.info(f" + Certificate renewed for {domain}")
+        logger.info(f" + New certificate created for {domain}. Certificate path: {cert_path} Key Path: {key_path}")
 
     return cert_path, key_path
 
@@ -134,7 +174,7 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
             bigip.create('/mgmt/tm/sys/file/ssl-cert', certdata)
             logger.info(f' + Certificate and key for {domain} were successfully uploaded to F5.')
 
-        if not bigip.exist(f'/mgmt/tm/ltm/profile/client-ssl/certbot-{domain}'):
+        if not bigip.exist(f'/mgmt/tm/ltm/profile/client-ssl/clientssl-certbot-{domain}'):
             clientsslprofile = {
                 'name' : f'clientssl-certbot-{domain}',
                 'defaultsFrom': (BaseClientSSLProfile),
@@ -150,7 +190,7 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
             bigip.create('/mgmt/tm/ltm/profile/client-ssl', clientsslprofile)
             logger.info(f' + New client-ssl profile "clientssl-certbot-{domain}" created with serverName "{domain}".')
 
-        if not bigip.exist(f'/mgmt/tm/ltm/profile/server-ssl/certbot-{domain}'):
+        if not bigip.exist(f'/mgmt/tm/ltm/profile/server-ssl/serverssl-certbot-{domain}'):
             serversslprofile = {
                 'name' : f'serverssl-certbot-{domain}',
                 'defaultsFrom': (BaseServerSSLProfile),
@@ -259,6 +299,8 @@ if __name__ == '__main__':
 
             if cert_path is None or key_path is None:
                 logger.info(" + Continuing with next domain...")
+                logger.info(" ********************************************************************************")
+                logger.info("")
                 continue
 
             try:
@@ -275,6 +317,8 @@ if __name__ == '__main__':
 
             if cert_path is None or key_path is None:
                 logger.info(" + Continuing with next domain...")
+                logger.info(" ********************************************************************************")
+                logger.info("")
                 continue
 
             # Deploy cert to F5
@@ -285,4 +329,3 @@ if __name__ == '__main__':
             except Exception as e:
                 logger.error(f" + ERROR: Failed to deploy traffic certificate for {domain}: {e}")
                 continue
-

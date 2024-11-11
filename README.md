@@ -84,6 +84,7 @@ Arguments:
 - The script checks if a certificate for that domain already exists on the local machine
 - If a certificate for that domain does not already exist, it will attempt to generate a new certificate for that domain using certbot and the certbot-dns-rfc2136 plugin
 - If a certificate for that domain does already exist, it will attempt a certbot renewal. If certbot runs successfully, it will then check the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
+- If the certificate was renewed outside of this script (like e.g. the default certbot cronjob), the above check will not trigger an upload, so the script also check issue date of the current live certificate (via an HTTP request), and if it does not match the last renewal date within a day, it will do a force upload of the current certificate that exists on the machine the script is being ran from, provided that the issue date of the current machine cert is newer than the issue date of the live traffic cert
 - The script then connects to the F5 REST API, and checks if an SSL profile for that domain exists already
    - If so, it uploads the new certificate, automatically setting it as the certificate that profile uses
    - If not, it creates a new SSL profile for that domain (with the naming scheme `certbot-{domain}`), uploads the new certificate (named `certbot-{domain}.crt` and `certbot-{domain}.key`), and then sets the newly created SSL profile to use that certificate
