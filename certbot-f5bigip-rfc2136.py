@@ -16,12 +16,13 @@ import socket
 def get_cert_issue_date(hostname, port=443):
     try:
         context = ssl.create_default_context()
-        with socket.create_connection((hostname, port)) as ssl_sock:
-            cert = ssl_sock.getpeercert()
-            expiration_date_str = cert['notBefore']
-            expiration_date = datetime.strptime(expiration_date_str, "%b %d %H:%M:%S %Y %Z")
-            expiration_timestamp = expiration_date.timestamp()
-            return expiration_timestamp
+        with socket.create_connection((hostname, port)) as sock:
+            with context.wrap_socket(sock, server_hostname=hostname) as ssl_sock:
+                cert = ssl_sock.getpeercert()
+                expiration_date_str = cert['notBefore']
+                expiration_date = datetime.strptime(expiration_date_str, "%b %d %H:%M:%S %Y %Z")
+                expiration_timestamp = expiration_date.timestamp()
+                return expiration_timestamp
     except socket.gaierror:
         logger.error(f" + ERROR: {hostname} not available or DNS not resolvable, cannot verify current certificate expiration status.")
         return None
