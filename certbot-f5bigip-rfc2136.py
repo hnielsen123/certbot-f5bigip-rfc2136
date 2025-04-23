@@ -23,6 +23,8 @@ def get_cert_issue_date(hostname, port=443):
                 expiration_date = datetime.strptime(expiration_date_str, "%b %d %H:%M:%S %Y %Z")
                 expiration_timestamp = expiration_date.timestamp()
                 return expiration_timestamp
+    except ssl.SSLCertVerificationError:
+        raise
     except socket.gaierror:
         logger.error(f" + ERROR: {hostname} not available or DNS not resolvable, cannot verify current certificate expiration status.")
         return None
