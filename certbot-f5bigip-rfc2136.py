@@ -80,6 +80,8 @@ def run_certbot(domain, certbot_config):
     # Check if certificate already exists
     if os.path.exists(cert_path):
         logger.info(f' + Certificate for {domain} exists. Attempting renewal.')
+        logger.info(f' + Certbot output for {domain}:')
+        logger.info('')
 
         # Get modification time before renewal
         cert_mtime_before = os.path.getmtime(cert_path)
@@ -88,6 +90,7 @@ def run_certbot(domain, certbot_config):
         certbot_command = ['certbot', 'renew', '--cert-name', domain, '--dns-rfc2136']
         try:
             subprocess.run(certbot_command, check=True)
+            logger.info('')
 
         except subprocess.CalledProcessError as e:
             logger.error(f" + ERROR: Certbot renewal failed for {domain} with error: {e}") 
@@ -294,20 +297,25 @@ if __name__ == '__main__':
         sys.exit(1)
 
     for domain in domains:
+
+        domain = domain.strip()
+
+        logger.info('')
+        logger.info(" ********************************************************************************")
+        logger.info(f'Domain: {domain}')
+
         # If "device-cert:domain.com" is in domains_list, the script will attempt
         # to generate a wildcard cert and upload it as the device cert
         if domain.split(":")[0] == "device-cert":
             wildcard_domain = f'*.{domain.split(":")[1]}'
-            cert_path, key_path = run_certbot(wildcard_domain.strip(), certbot_config) 
+            cert_path, key_path = run_certbot(wildcard_domain, certbot_config) 
 
             if cert_path is None or key_path is None:
                 logger.info(" + Continuing with next domain...")
-                logger.info(" ********************************************************************************")
-                logger.info("")
                 continue
 
             try:
-                deploy_device_cert(domain.strip(), cert_path, key_path, f5_config)
+                deploy_device_cert(domain, cert_path, key_path, f5_config)
                 logger.info(f' + New wildcard certificate {domain} successfully created/renewed and installed as F5 device cert')
 
             except Exception as e:
@@ -316,19 +324,19 @@ if __name__ == '__main__':
 
         else:
             # Run certbot to either issue or renew cert
-            cert_path, key_path = run_certbot(domain.strip(), certbot_config)
+            cert_path, key_path = run_certbot(domain, certbot_config)
 
             if cert_path is None or key_path is None:
                 logger.info(" + Continuing with next domain...")
-                logger.info(" ********************************************************************************")
-                logger.info("")
                 continue
 
             # Deploy cert to F5
             try:
-                deploy_traffic_cert(domain.strip(), cert_path, key_path, f5_config)
+                deploy_traffic_cert(domain, cert_path, key_path, f5_config)
                 logger.info(f' + New certificate and key for {domain} successfully created/renewed and installed')
 
             except Exception as e:
                 logger.error(f" + ERROR: Failed to deploy traffic certificate for {domain}: {e}")
                 continue
+        
+        logger.info('')
