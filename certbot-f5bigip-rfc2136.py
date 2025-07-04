@@ -301,7 +301,7 @@ if __name__ == '__main__':
         domain = domain.strip()
 
         logger.info('')
-        logger.info(" ********************************************************************************")
+        logger.info("*********************************************************************************************")
         logger.info(f'Domain: {domain}')
 
         # If "device-cert:domain.com" is in domains_list, the script will attempt
@@ -312,6 +312,7 @@ if __name__ == '__main__':
 
             if cert_path is None or key_path is None:
                 logger.info(" + Continuing with next domain...")
+                logger.info('')
                 continue
 
             try:
@@ -320,6 +321,7 @@ if __name__ == '__main__':
 
             except Exception as e:
                 logger.error(f" + ERROR: Failed to deploy device certificate for *.{domain}: {e}")
+                logger.info('')
                 continue
 
         else:
@@ -328,6 +330,7 @@ if __name__ == '__main__':
 
             if cert_path is None or key_path is None:
                 logger.info(" + Continuing with next domain...")
+                logger.info('')
                 continue
 
             # Deploy cert to F5
@@ -337,6 +340,6 @@ if __name__ == '__main__':
 
             except Exception as e:
                 logger.error(f" + ERROR: Failed to deploy traffic certificate for {domain}: {e}")
+                logger.info('')
                 continue
         
-        logger.info('')
