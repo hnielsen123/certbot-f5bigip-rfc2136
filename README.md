@@ -67,7 +67,7 @@ domains_list = app.domain.com, thing.domain.com
 Run the script with:
 
 ```bash
-sudo python3 certbot-f5bigip-rfc2136.py -c /path/to/config.ini
+sudo /venv/bin/python3 certbot-f5bigip-rfc2136.py -c /path/to/config.ini
 ```
 Arguments:
 ```
