@@ -77,7 +77,7 @@ Arguments:
 ```
 **Note:** `--force-upload` is designed to be used with one domain, and run manually. The use case is a service that is already using certbot for certificate generation/renewal, that you a transitioning to the F5 device. In that case, you want to take the existing cert and upload it, after which you would transition the renewal process from the existing cronjob/systemd timer to this script. Do not use this option within a cronjob, as it will not do certificate renewal and will force upload the same cert to the F5 device every time it is ran. 
 
-### Workflow
+### Overview of script operation
 
 - The script tests that certbot is installed and functional
 - The script tests that it can successfully connect and authenticate to the F5 Rest API
@@ -94,8 +94,6 @@ Arguments:
 **Note:** At this time, for each new domain listed in `config.ini`, the script will create/upload a traffic certificate and create a new SSL profile on the F5 device, but it will not apply the SSL profile to a Virtual Server. After you've ran this script for a new domain, you must manually apply the new profile to the applicable Virtual Server. This should only have to be done the first time; on subsequent renewals the certificate will be swapped out in the same profile, so it should take effect without any manual interaction required.  
 
 ### Automation
-
-TODO: detailed cronjob instructions, but should more or less be as simple as creating a cronjob that runs the script as root ~ once a day
 
 Disable certbot's own automation script
 ```bash
