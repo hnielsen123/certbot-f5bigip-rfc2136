@@ -111,7 +111,6 @@ def run_certbot(domain, certbot_config):
         # Request a new certificate using dns-rfc2136
         certbot_command = [
             'certbot', 'certonly', 
-            '--key-type', 'rsa',
             '--dns-rfc2136', 
             '--dns-rfc2136-credentials', certbot_config['credentials'],
             '--domain', domain,
