@@ -9,6 +9,5 @@ base_ssl_profile_server = "/Common/serverssl-certbot"
 credentials = 
 email = 
 
-# Add 'device-cert:yourdomain.com' to domains_list to generate wildcard cert and install it as F5 device cert
 [domains]
 domains_list = 
