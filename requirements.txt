@@ -1,3 +1,2 @@
-paramiko
-scp
 bigrest==1.7.3
+requests

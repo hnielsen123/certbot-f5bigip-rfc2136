@@ -6,8 +6,6 @@ import os
 import sys
 import subprocess
 from bigrest.bigip import BIGIP
-import paramiko
-from scp import SCPClient
 from datetime import date, datetime
 import argparse
 import ssl
@@ -34,24 +32,6 @@ def get_cert_issue_date(hostname, port=443):
 
 def is_within_one_day(timestamp1, timestamp2, tolerance=86400):
     return abs(timestamp1 - timestamp2) <= tolerance
-
-def create_ssh_client(hostname, username, password):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname, username=username, password=password)
-    return ssh
-
-def scp_transfer(ssh_client, local_path, remote_path, domain, file):
-    with SCPClient(ssh_client.get_transport()) as scp:
-        try:
-            scp.put(local_path, remote_path)
-            logger.info(f" + {domain}/{file} uploaded to F5 device")
-        except SCPException as e:
-            logger.error(f" + ERROR: SCP transfer failed for {domain}/{file}: {e}")
-        except paramiko.SSHException as e:
-            logger.error(f" + ERROR: SSH error during SCP transfer for {domain}/{file}: {e}")
-        except Exception as e:
-            logger.error(f" + ERROR: Unexpected error during SCP transfer for {domain}/{file}: {e}")
 
 def load_config(config_file):
     config = configparser.ConfigParser()
@@ -151,7 +131,6 @@ def run_certbot(domain, certbot_config):
 
     return cert_path, key_path
 
-
 def instantiate_bigip(f5_config):
     return BIGIP(f5_config['host'], f5_config['user'], f5_config['pass'], session_verify=False)
 
@@ -214,45 +193,6 @@ def deploy_traffic_cert(domain, cert_path, key_path, f5_config):
     except Exception as e:
         logger.error(f" + ERROR: Failed to deploy certificate for {domain}: {e}")
 
-def deploy_device_cert(domain, cert_path, key_path, f5_config):
-    today = str(today.today())
-    target_cert_path = f"/config/httpd/conf/ssl.crt/{domain.split('.')[-2]}-{today}.crt"
-    target_key_path = f"/config/httpd/conf/ssl.key/{domain.split('.')[-2]}-{today}.key"
-
-    # Transfer new device certificate and key to F5 device via SCP
-    try:
-        ssh_client = create_ssh_client(f5_config['host'], f5_config['user'], f5_config['pass'])
-        scp_transfer(ssh_client, cert_path, target_cert_path)
-        scp_transfer(ssh_client, key_path, target_key_path)
-        ssh_client.close()
-        logger.info(f" + Device certificates successfully uploaded to F5 device.")
-
-    except Exception as e:
-        logger.error(f" + ERROR: Failed to upload device certificates to F5 device: {e}")
-
-    bigip = instantiate_bigip(f5_config)
-    
-    # Configure F5 device to use new device certificate
-    try:
-        with bigip as transaction:
-            modify_cert = bigip.load("/mgmt/tm/sys/httpd")
-            modify_cert.properties['sslCertfile'] = target_cert_path
-            modify_cert.properties['sslCertkeyfile'] = target_key_path
-            bigip.save(modify_cert)
-            logger.info(f" + Configuration changed to use new device certificate")
-
-    except Exception as e:
-        logger.error(f" + ERROR: Failed to update configuration to use new device certificate: {e}")
-
-    restart_command = {"name": "httpd", "command": "restart"}
-
-    # Restart httpd service for new certificate to take effect
-    try:
-        bigip.command('/mgmt/tm/sys/service', restart_command)
-        logger.info(" + Service httpd restart on F5 device.")
-    except Exception as e:
-        logger.error(f" + ERROR: Failed to restart httpd service. Restart manually for new certificate to take effect: {e}")
-
 
 if __name__ == '__main__':
 
@@ -276,6 +216,15 @@ if __name__ == '__main__':
     domains = config['domains']['domains_list'].split(',')
     BaseClientSSLProfile = config['f5']['base_ssl_profile_client']
     BaseServerSSLProfile = config['f5']['base_ssl_profile_server']
+
+    # Print script title and time
+    logger.info("")
+    logger.info("#################################################################################################")
+    logger.info("F5 BIG-IP Device Certificate Automation via certbot-dns-rfc2136")
+    now = datetime.now()
+    date_and_time = now.strftime("%B %d %Y %I:%M:%S %p %z")
+    logger.info(f"{date_and_time}")
+    logger.info("")
 
     # Check if Certbot is available
     try:
@@ -304,42 +253,21 @@ if __name__ == '__main__':
         logger.info("*********************************************************************************************")
         logger.info(f'Domain: {domain}')
 
-        # If "device-cert:domain.com" is in domains_list, the script will attempt
-        # to generate a wildcard cert and upload it as the device cert
-        if domain.split(":")[0] == "device-cert":
-            wildcard_domain = f'*.{domain.split(":")[1]}'
-            cert_path, key_path = run_certbot(wildcard_domain, certbot_config) 
+        # Run certbot to either issue or renew cert
+        cert_path, key_path = run_certbot(domain, certbot_config)
 
-            if cert_path is None or key_path is None:
-                logger.info(" + Continuing with next domain...")
-                logger.info('')
-                continue
+        if cert_path is None or key_path is None:
+            logger.info(" + Continuing with next domain...")
+            logger.info('')
+            continue
 
-            try:
-                deploy_device_cert(domain, cert_path, key_path, f5_config)
-                logger.info(f' + New wildcard certificate {domain} successfully created/renewed and installed as F5 device cert')
+        # Deploy cert to F5
+        try:
+            deploy_traffic_cert(domain, cert_path, key_path, f5_config)
+            logger.info(f' + New certificate and key for {domain} successfully created/renewed and installed')
 
-            except Exception as e:
-                logger.error(f" + ERROR: Failed to deploy device certificate for *.{domain}: {e}")
-                logger.info('')
-                continue
-
-        else:
-            # Run certbot to either issue or renew cert
-            cert_path, key_path = run_certbot(domain, certbot_config)
-
-            if cert_path is None or key_path is None:
-                logger.info(" + Continuing with next domain...")
-                logger.info('')
-                continue
-
-            # Deploy cert to F5
-            try:
-                deploy_traffic_cert(domain, cert_path, key_path, f5_config)
-                logger.info(f' + New certificate and key for {domain} successfully created/renewed and installed')
-
-            except Exception as e:
-                logger.error(f" + ERROR: Failed to deploy traffic certificate for {domain}: {e}")
-                logger.info('')
-                continue
+        except Exception as e:
+            logger.error(f" + ERROR: Failed to deploy traffic certificate for {domain}: {e}")
+            logger.info('')
+            continue
         

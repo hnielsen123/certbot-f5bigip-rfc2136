@@ -23,14 +23,16 @@ This Python script automates the process of generating SSL certificates using Ce
 
     - This script utilizes the [BIGREST Python SDK](https://github.com/f5-rahm/BIGREST/tree/master) by [Leonardo Souza](https://github.com/leonardobdes) and [Jason Rahm](https://github.com/f5-rahm) to communicate with the F5 device using F5's iControl REST API
 
-    Other Dependencies: 
-    - paramiko for SSH and SCP operations
-    - scp for secure file transfer
 
 Install dependencies (excluding certbot and certbot-dns-rfc2136):
 
 ```bash
+mkdir /root/certbot-rfc-2136
+cd /root/certbot-rfc-2136
+python3 -m venv venv
+source venv/bin/activate
 sudo pip install -r requirements.txt
+deactivate
 ```
 
 ## Configuration
@@ -50,7 +52,7 @@ credentials = /path/to/rfc2136.ini
 email = admin@example.com
 
 [domains]
-domains_list = app.domain.com, thing.domain.com, device-cert:domain.com
+domains_list = app.domain.com, thing.domain.com
 ```
 
 - F5 Section: Contains the credentials for the F5 BIG-IP device 
@@ -59,7 +61,6 @@ domains_list = app.domain.com, thing.domain.com, device-cert:domain.com
     -  `base_ssl_profile_server` defines the server SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `serverssl-letsencypt` profile (with `serverssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `serverssl-certbot-{domain}`  
 - Certbot Section: Configures Certbot, including the path to the `rfc2136.ini` credentials file and the email address for certificate notifications
 - Domains Section: Lists the domains you want to generate certificates for, separated by commas
-    - To generate and install the device certificate, add `device-cert:{domain}` (e.g. `device-cert:example.com`) to the list of domains 
 
 ## Usage
 
@@ -89,20 +90,23 @@ Arguments:
    - If so, it uploads the new certificate, automatically setting it as the certificate that profile uses
    - If not, it creates a new SSL profile for that domain (with the naming scheme `certbot-{domain}`), uploads the new certificate (named `certbot-{domain}.crt` and `certbot-{domain}.key`), and then sets the newly created SSL profile to use that certificate
 - It then repeats this process with the next domain on the list
-- If the domain `device-cert:{domain}` is on the list of domains, the script checks to see if a wildcard cert for that domain exists on the local machine
-   - If the wildcard cert exists, it similarly attempts a certbot renewal. As before, if certbot runs successfully, it then checks the last modification time for that certificate to determine whether the certificate was renewed, or if certbot just exited because the certificate did not need to be renewed yet
-   - If the wildcard cert does not exist, the script requests a new wildcard certificate using certbot and certbot-dns-rfc2136
-- The script then uses SCP to copy the wildcard cert and key to the F5 device (the F5 iControl REST API does not allow device certificates to be uploaded using the API; SCP is F5's recommended method for this use case) 
-- The naming scheme for the device certificates is `domain-YYYY-MM-DD.crt` and `domain-YYYY-MM-DD.key`, e.g. for a wildcart cert for `*.example.com`, uploaded on 8/11/24, the certificate would be named `example-2024-08-11.crt`
-- The script then connects to the API, and changes the configuration of httpd to use the newly uploaded certificate
-- The script restarts the httpd service, so the new certificate will take effect
-- The script continues with the next domain on the list (if any)
 
 **Note:** At this time, for each new domain listed in `config.ini`, the script will create/upload a traffic certificate and create a new SSL profile on the F5 device, but it will not apply the SSL profile to a Virtual Server. After you've ran this script for a new domain, you must manually apply the new profile to the applicable Virtual Server. This should only have to be done the first time; on subsequent renewals the certificate will be swapped out in the same profile, so it should take effect without any manual interaction required.  
 
 ### Automation
 
 TODO: detailed cronjob instructions, but should more or less be as simple as creating a cronjob that runs the script as root ~ once a day
+
+Disable certbot's own automation script
+```bash
+sudo snap stop --disable certbot.renew
+```
+
+Add cronjob
+```bash
+00 2 * * * /root/certbot-f5bigip-rfc2136/venv/bin/python3 -u /root/certbot-f5bigip-rfc2136/certbot-f5bigip-rfc2136.py -c /root/certbot-f5bigip-rfc2136/config.ini.main 2>&1 | tee -a /root/certbot-f5bigip-rfc2136.log
+```
+
 
 ## License
 This project is licensed under the GPL-2.0 License. See the LICENSE file for details.
