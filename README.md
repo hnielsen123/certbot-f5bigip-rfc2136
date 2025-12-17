@@ -58,7 +58,7 @@ domains_list = app.domain.com, thing.domain.com
 - F5 Section: Contains the credentials for the F5 BIG-IP device 
     - Must provide credentials that have administrator access to the device 
     -  `base_ssl_profile_client` defines the client SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `clientssl-certbot` profile (with `clientssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `clientssl-certbot-{domain}`  
-    -  `base_ssl_profile_server` defines the server SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `serverssl-letsencypt` profile (with `serverssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `serverssl-certbot-{domain}`  
+    -  `base_ssl_profile_server` defines the server SSL profile that all new profiles created by this script will use as their parent profile. I recommend creating a `serverssl-certbot` profile (with `serverssl` as its parent), and using that as the parent. The new child profiles will be created with the naming scheme `serverssl-certbot-{domain}`  
 - Certbot Section: Configures Certbot, including the path to the `rfc2136.ini` credentials file and the email address for certificate notifications
 - Domains Section: Lists the domains you want to generate certificates for, separated by commas
 
@@ -72,8 +72,9 @@ sudo /venv/bin/python3 certbot-f5bigip-rfc2136.py -c /path/to/config.ini
 Arguments:
 ```
 -c, --config      Path to config.ini file (Required)
---force-upload    If this flag is provided, the script will upload any existing letsencrypt certs for the provided domain(s) without checking renewal status. Used 
-                  for transitioning services that already use certbot to the F5 device. (Optional)
+--force-upload    If this flag is provided, the script will upload any existing letsencrypt certs for
+                  the provided domain(s) without checking renewal status. Used for transitioning
+                  services that already use certbot to the F5 device. (Optional)
 ```
 **Note:** `--force-upload` is designed to be used with one domain, and run manually. The use case is a service that is already using certbot for certificate generation/renewal, that you a transitioning to the F5 device. In that case, you want to take the existing cert and upload it, after which you would transition the renewal process from the existing cronjob/systemd timer to this script. Do not use this option within a cronjob, as it will not do certificate renewal and will force upload the same cert to the F5 device every time it is ran. 
 
