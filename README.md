@@ -64,11 +64,12 @@ domains_list = app.domain.com, thing.domain.com
 
 ## Usage
 
-Run the script with:
+The script should be automated with cron or a systemd timer (see 'Automation' section below for cron instructions). However, for testing or ad-hoc use, the script can be ran manually with:
 
 ```bash
-sudo /venv/bin/python3 certbot-f5bigip-rfc2136.py -c /path/to/config.ini
+sudo venv/bin/python3 certbot-f5bigip-rfc2136.py -c /path/to/config.ini
 ```
+
 Arguments:
 ```
 -c, --config      Path to config.ini file (Required)
