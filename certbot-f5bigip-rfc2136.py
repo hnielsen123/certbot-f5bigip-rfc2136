@@ -24,11 +24,9 @@ def get_cert_issue_date(hostname, port=443):
     except ssl.SSLCertVerificationError:
         raise
     except socket.gaierror:
-        logger.error(f" + ERROR: {hostname} not available or DNS not resolvable, cannot verify current certificate expiration status.")
-        return None
+        raise
     except Exception as e:
-        logger.error(f" + ERROR: Error checking current certificate expiration status: {e}")
-        return None
+        raise
 
 def is_within_one_day(timestamp1, timestamp2, tolerance=86400):
     return abs(timestamp1 - timestamp2) <= tolerance
@@ -102,6 +100,14 @@ def run_certbot(domain, certbot_config):
                 logger.info(f' + Certificate for {domain} did not need renewal, but does need to be uploaded to load balancer.')
                 logger.info(f' + Current traffic certificate on the load balancer is EXPIRED.')
                 return cert_path, key_path
+
+            except socket.gaierror:
+                logger.error(f" + ERROR: {domain} not available or DNS not resolvable, cannot verify current certificate expiration status.")
+                return None, None
+
+            except Exception as e:
+                logger.error(f" + ERROR: Error checking current certificate expiration status: {e}")
+                return None, None
 
         logger.info(f" + Certificate renewed for {domain}")
 
@@ -263,7 +269,7 @@ if __name__ == '__main__':
         # Deploy cert to F5
         try:
             deploy_traffic_cert(domain, cert_path, key_path, f5_config)
-            logger.info(f' + New certificate and key for {domain} successfully created/renewed and installed')
+            logger.info(" + Continuing with next domain...")
 
         except Exception as e:
             logger.error(f" + ERROR: Failed to deploy traffic certificate for {domain}: {e}")
